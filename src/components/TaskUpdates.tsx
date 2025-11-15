@@ -1,12 +1,28 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { Copy, CheckCheck, FileText } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 
 export const TaskUpdates = () => {
-  const [updates, setUpdates] = useState("");
+  const [updates, setUpdates] = useState(() => {
+    try {
+      return localStorage.getItem("taskUpdates") || "";
+    } catch (e) {
+      console.error("Failed to load updates from localStorage:", e);
+      return "";
+    }
+  });
   const [copied, setCopied] = useState(false);
+
+  // Persist updates to localStorage whenever they change
+  useEffect(() => {
+    try {
+      localStorage.setItem("taskUpdates", updates);
+    } catch (e) {
+      console.error("Failed to save updates to localStorage:", e);
+    }
+  }, [updates]);
 
   const handleCopy = async () => {
     try {

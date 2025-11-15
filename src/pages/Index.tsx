@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { TaskItem } from "@/components/TaskItem";
 import { AddTaskInput } from "@/components/AddTaskInput";
 import { ProgressCard } from "@/components/ProgressCard";
@@ -12,16 +12,35 @@ interface Task {
   id: string;
   text: string;
   completed: boolean;
+  createdAt: number;
 }
 
 const Index = () => {
-  const [tasks, setTasks] = useState<Task[]>([]);
+  const [tasks, setTasks] = useState<Task[]>(() => {
+    try {
+      const stored = localStorage.getItem("tasks");
+      return stored ? JSON.parse(stored) : [];
+    } catch (e) {
+      console.error("Failed to load tasks from localStorage:", e);
+      return [];
+    }
+  });
+
+  // Persist tasks to localStorage whenever they change
+  useEffect(() => {
+    try {
+      localStorage.setItem("tasks", JSON.stringify(tasks));
+    } catch (e) {
+      console.error("Failed to save tasks to localStorage:", e);
+    }
+  }, [tasks]);
 
   const addTask = (text: string) => {
     const newTask: Task = {
       id: Date.now().toString(),
       text,
       completed: false,
+      createdAt: Date.now(),
     };
     setTasks([...tasks, newTask]);
   };
@@ -37,6 +56,18 @@ const Index = () => {
   const deleteTask = (id: string) => {
     setTasks(tasks.filter((task) => task.id !== id));
   };
+
+  // Auto-delete tasks after 7 days
+  useEffect(() => {
+    const interval = setInterval(() => {
+      const now = Date.now();
+      const sevenDays = 7 * 24 * 60 * 60 * 1000;
+      setTasks((prevTasks) =>
+        prevTasks.filter((task) => now - task.createdAt < sevenDays)
+      );
+    }, 60000); // Check every minute
+    return () => clearInterval(interval);
+  }, []);
 
   const completedTasks = tasks.filter((task) => task.completed).length;
 
@@ -87,14 +118,18 @@ const Index = () => {
                 No tasks yet. Add one to get started! 🎯
               </p>
             ) : (
-              tasks.map((task) => (
-                <TaskItem
-                  key={task.id}
-                  {...task}
-                  onToggle={toggleTask}
-                  onDelete={deleteTask}
-                />
-              ))
+              tasks.map((task) => {
+                const expiresIn = 7 * 24 * 60 * 60 * 1000 - (Date.now() - task.createdAt);
+                return (
+                  <TaskItem
+                    key={task.id}
+                    {...task}
+                    expiresIn={expiresIn}
+                    onToggle={toggleTask}
+                    onDelete={deleteTask}
+                  />
+                );
+              })
             )}
           </div>
         </div>

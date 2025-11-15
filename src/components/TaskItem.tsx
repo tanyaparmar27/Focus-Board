@@ -7,11 +7,12 @@ interface TaskItemProps {
   id: string;
   text: string;
   completed: boolean;
+  expiresIn: number;
   onToggle: (id: string) => void;
   onDelete: (id: string) => void;
 }
 
-export const TaskItem = ({ id, text, completed, onToggle, onDelete }: TaskItemProps) => {
+export const TaskItem = ({ id, text, completed, expiresIn, onToggle, onDelete }: TaskItemProps) => {
   const [isDeleting, setIsDeleting] = useState(false);
 
   const handleDelete = () => {
@@ -32,14 +33,16 @@ export const TaskItem = ({ id, text, completed, onToggle, onDelete }: TaskItemPr
         onCheckedChange={() => onToggle(id)}
         className="data-[state=checked]:bg-primary data-[state=checked]:border-primary"
       />
-      <span
-        className={cn(
-          "flex-1 transition-all duration-300",
-          completed && "line-through text-muted-foreground opacity-60"
-        )}
-      >
-        {text}
-      </span>
+      <div className="flex-1">
+        <span
+          className={cn(
+            "block transition-all duration-300",
+            completed && "line-through text-muted-foreground opacity-60"
+          )}
+        >
+          {text}
+        </span>
+      </div>
       <button
         onClick={handleDelete}
         className="opacity-0 group-hover:opacity-100 transition-opacity duration-200 text-muted-foreground hover:text-destructive"
