@@ -1,20 +1,31 @@
 import { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
-import { Play, Pause, RotateCcw, Coffee, Droplets, Activity, Bell, BellOff } from "lucide-react";
+import { Play, Pause, RotateCcw, Coffee, Droplets, Activity, Bell, BellOff, X, ExternalLink } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import { Progress } from "@/components/ui/progress";
+import { useFloatingTimerWindow } from "@/hooks/use-floating-timer";
 
 type TimerMode = "focus" | "break" | "water";
 
+interface Notification {
+  id: string;
+  title: string;
+  body: string;
+  emoji: string;
+}
+
 export const FocusTimer = () => {
   const [mode, setMode] = useState<TimerMode>("focus");
-  const [timeLeft, setTimeLeft] = useState(25 * 60); // 25 minutes in seconds
+  const [timeLeft, setTimeLeft] = useState(45 * 60); // 45 minutes in seconds
   const [isRunning, setIsRunning] = useState(false);
-  const [initialTime, setInitialTime] = useState(25 * 60);
+  const [initialTime, setInitialTime] = useState(45 * 60);
   const [notificationsEnabled, setNotificationsEnabled] = useState(false);
   const [lastWaterReminder, setLastWaterReminder] = useState(0);
+  const [popupNotification, setPopupNotification] = useState<Notification | null>(null);
+  const { openFloatingWindow, closeFloatingWindow, updateFloatingWindow, isPopupOpen } = useFloatingTimerWindow();
   const intervalRef = useRef<number>();
   const audioRef = useRef<HTMLAudioElement | null>(null);
+  const popupTimeoutRef = useRef<NodeJS.Timeout>();
 
   // Request notification permission on mount
   useEffect(() => {
@@ -23,33 +34,51 @@ export const FocusTimer = () => {
     }
   }, []);
 
-  // Initialize notification sound
+  // Initialize notification sound - Pleasant chime instead of harsh beep
   useEffect(() => {
-    // Create a simple notification sound using Web Audio API
-    const context = new (window.AudioContext || (window as any).webkitAudioContext)();
-    const createBeep = () => {
-      const oscillator = context.createOscillator();
-      const gainNode = context.createGain();
-      
-      oscillator.connect(gainNode);
-      gainNode.connect(context.destination);
-      
-      oscillator.frequency.value = 800;
-      oscillator.type = "sine";
-      
-      gainNode.gain.setValueAtTime(0.3, context.currentTime);
-      gainNode.gain.exponentialRampToValueAtTime(0.01, context.currentTime + 0.5);
-      
-      oscillator.start(context.currentTime);
-      oscillator.stop(context.currentTime + 0.5);
+    const createPleasantChime = () => {
+      try {
+        const context = new (window.AudioContext || (window as any).webkitAudioContext)();
+        
+        // Create a pleasant two-tone chime
+        const playChime = () => {
+          // First tone - high pitch
+          const osc1 = context.createOscillator();
+          const gain1 = context.createGain();
+          osc1.connect(gain1);
+          gain1.connect(context.destination);
+          osc1.frequency.value = 523; // C5 note
+          osc1.type = "sine";
+          gain1.gain.setValueAtTime(0.2, context.currentTime);
+          gain1.gain.exponentialRampToValueAtTime(0.01, context.currentTime + 0.4);
+          osc1.start(context.currentTime);
+          osc1.stop(context.currentTime + 0.4);
+          
+          // Second tone - lower pitch, slightly delayed
+          const osc2 = context.createOscillator();
+          const gain2 = context.createGain();
+          osc2.connect(gain2);
+          gain2.connect(context.destination);
+          osc2.frequency.value = 392; // G4 note
+          osc2.type = "sine";
+          gain2.gain.setValueAtTime(0.2, context.currentTime + 0.1);
+          gain2.gain.exponentialRampToValueAtTime(0.01, context.currentTime + 0.5);
+          osc2.start(context.currentTime + 0.1);
+          osc2.stop(context.currentTime + 0.5);
+        };
+        
+        audioRef.current = { play: playChime } as any;
+      } catch (e) {
+        console.log("Could not initialize audio context:", e);
+      }
     };
     
-    audioRef.current = { play: createBeep } as any;
+    createPleasantChime();
   }, []);
 
   const modes = {
-    focus: { duration: 25 * 60, label: "Focus Time", icon: Activity, color: "text-primary" },
-    break: { duration: 5 * 60, label: "Break Time", icon: Coffee, color: "text-accent" },
+    focus: { duration: 45 * 60, label: "Focus Time", icon: Activity, color: "text-primary" },
+    break: { duration: 10 * 60, label: "Break Time", icon: Coffee, color: "text-accent" },
     water: { duration: 2 * 60, label: "Water Break", icon: Droplets, color: "text-secondary" },
   };
 
@@ -63,21 +92,23 @@ export const FocusTimer = () => {
           if (mode === "focus") {
             const minutesElapsed = (initialTime - newTime) / 60;
             
-            // Water reminder every 20 minutes
-            if (minutesElapsed > 0 && minutesElapsed % 20 === 0 && minutesElapsed !== lastWaterReminder) {
+            // Water reminder every 30 minutes
+            if (minutesElapsed > 0 && minutesElapsed % 30 === 0 && minutesElapsed !== lastWaterReminder) {
               setLastWaterReminder(minutesElapsed);
               sendNotification(
                 "💧 Hydration Time!",
                 "Don't forget to drink some water! Stay hydrated.",
+                "💧",
                 "water"
               );
             }
             
-            // Stretch reminder at 15 minutes
-            if (newTime === 10 * 60) {
+            // Stretch reminder at 30 minutes (halfway through 45-min session)
+            if (newTime === 15 * 60) {
               sendNotification(
-                "🧘‍♀️ Stretch Break!",
+                "🧘 Stretch Break!",
                 "Quick reminder to stretch and relax your eyes for a moment.",
+                "🧘",
                 "stretch"
               );
             }
@@ -97,8 +128,20 @@ export const FocusTimer = () => {
     };
   }, [isRunning, timeLeft, mode, initialTime, lastWaterReminder]);
 
-  const sendNotification = (title: string, body: string, tag: string = "timer") => {
-    // Play sound
+  // Update floating window whenever timer state changes
+  useEffect(() => {
+    if (isPopupOpen()) {
+      updateFloatingWindow({
+        isOpen: true,
+        timeLeft,
+        isRunning,
+        mode,
+      });
+    }
+  }, [timeLeft, isRunning, mode, updateFloatingWindow, isPopupOpen]);
+
+  const sendNotification = (title: string, body: string, emoji: string = "🔔", tag: string = "timer") => {
+    // Play pleasant chime
     if (audioRef.current) {
       try {
         audioRef.current.play();
@@ -106,6 +149,22 @@ export const FocusTimer = () => {
         console.log("Could not play sound:", e);
       }
     }
+
+    // Show popup notification
+    setPopupNotification({
+      id: `${Date.now()}`,
+      title,
+      body,
+      emoji,
+    });
+
+    // Auto-hide popup after 5 seconds
+    if (popupTimeoutRef.current) {
+      clearTimeout(popupTimeoutRef.current);
+    }
+    popupTimeoutRef.current = setTimeout(() => {
+      setPopupNotification(null);
+    }, 5000);
 
     // Show toast
     toast({ title, description: body });
@@ -128,18 +187,21 @@ export const FocusTimer = () => {
       sendNotification(
         "🎉 Focus Session Complete!",
         "Great work! Time for a break. Don't forget to stretch and hydrate.",
+        "🎉",
         "focus-complete"
       );
     } else if (mode === "water") {
       sendNotification(
         "💧 Hydration Complete!",
         "Back to being productive!",
+        "💧",
         "water-complete"
       );
     } else {
       sendNotification(
         "☕ Break's Over!",
         "Ready to focus again?",
+        "☕",
         "break-complete"
       );
     }
@@ -201,6 +263,21 @@ export const FocusTimer = () => {
           <h3 className="font-semibold text-lg">{modes[mode].label}</h3>
         </div>
         <div className="flex gap-2">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => {
+              if (isPopupOpen()) {
+                closeFloatingWindow();
+              } else {
+                openFloatingWindow({ isOpen: true, timeLeft, isRunning, mode });
+              }
+            }}
+            className={isPopupOpen() ? "text-primary" : "text-muted-foreground"}
+            title={isPopupOpen() ? "Close floating window" : "Open floating window"}
+          >
+            <ExternalLink className="h-4 w-4" />
+          </Button>
           <Button
             variant="ghost"
             size="sm"
@@ -278,8 +355,29 @@ export const FocusTimer = () => {
       
       {mode === "focus" && notificationsEnabled && (
         <p className="text-xs text-center text-muted-foreground">
-          You'll get reminders to drink water (every 20 min) and stretch! 💝
+          You'll get reminders to drink water (every 30 min) and stretch! 💝
         </p>
+      )}
+
+      {/* Popup Notification */}
+      {popupNotification && (
+        <div className="fixed bottom-6 right-6 bg-gradient-primary text-white p-6 rounded-2xl shadow-glow max-w-sm animate-fade-in z-50">
+          <div className="flex items-start justify-between gap-4">
+            <div className="flex items-start gap-4">
+              <span className="text-4xl">{popupNotification.emoji}</span>
+              <div>
+                <h4 className="font-bold text-lg">{popupNotification.title}</h4>
+                <p className="text-sm opacity-90">{popupNotification.body}</p>
+              </div>
+            </div>
+            <button
+              onClick={() => setPopupNotification(null)}
+              className="text-white/80 hover:text-white transition-colors"
+            >
+              <X className="h-4 w-4" />
+            </button>
+          </div>
+        </div>
       )}
     </div>
   );
