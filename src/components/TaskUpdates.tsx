@@ -3,15 +3,14 @@ import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { Copy, CheckCheck, FileText } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
+import { useUser, getUserUpdates, saveUpdates } from "@/contexts/UserContext";
 
 export const TaskUpdates = () => {
+  const { user } = useUser();
+
   const [updates, setUpdates] = useState(() => {
-    try {
-      return localStorage.getItem("taskUpdates") || "";
-    } catch (e) {
-      console.error("Failed to load updates from localStorage:", e);
-      return "";
-    }
+    if (!user) return "";
+    return getUserUpdates(user.name);
   });
   const [copied, setCopied] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
@@ -19,6 +18,8 @@ export const TaskUpdates = () => {
 
   // Persist updates to localStorage with debounce and visual feedback
   useEffect(() => {
+    if (!user) return;
+    
     setIsSaving(true);
     
     // Clear previous timeout
@@ -29,7 +30,7 @@ export const TaskUpdates = () => {
     // Debounce save by 500ms
     saveTimeoutRef.current = setTimeout(() => {
       try {
-        localStorage.setItem("taskUpdates", updates);
+        saveUpdates(user.name, updates);
         setIsSaving(false);
       } catch (e) {
         console.error("Failed to save updates to localStorage:", e);
@@ -42,7 +43,7 @@ export const TaskUpdates = () => {
         clearTimeout(saveTimeoutRef.current);
       }
     };
-  }, [updates]);
+  }, [updates, user]);
 
   const handleCopy = async () => {
     try {

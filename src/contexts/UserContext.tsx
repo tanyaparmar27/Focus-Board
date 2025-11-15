@@ -76,3 +76,43 @@ export const applyGenderTheme = (gender: Gender) => {
     document.documentElement.classList.remove("male-theme");
   }
 };
+
+// Helper functions for username-based localStorage keys
+export const getStorageKey = (username: string, type: "tasks" | "updates") => {
+  return `${username}:${type}`;
+};
+
+export const getUserTasks = (username: string) => {
+  try {
+    const stored = localStorage.getItem(getStorageKey(username, "tasks"));
+    return stored ? JSON.parse(stored) : [];
+  } catch (e) {
+    console.error("Failed to load tasks for user:", e);
+    return [];
+  }
+};
+
+export const saveTasks = (username: string, tasks: any[]) => {
+  try {
+    localStorage.setItem(getStorageKey(username, "tasks"), JSON.stringify(tasks));
+  } catch (e) {
+    console.error("Failed to save tasks for user:", e);
+  }
+};
+
+export const getUserUpdates = (username: string) => {
+  try {
+    return localStorage.getItem(getStorageKey(username, "updates")) || "";
+  } catch (e) {
+    console.error("Failed to load updates for user:", e);
+    return "";
+  }
+};
+
+export const saveUpdates = (username: string, updates: string) => {
+  try {
+    localStorage.setItem(getStorageKey(username, "updates"), updates);
+  } catch (e) {
+    console.error("Failed to save updates for user:", e);
+  }
+};

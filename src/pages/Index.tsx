@@ -7,7 +7,7 @@ import { DailyGoals } from "@/components/DailyGoals";
 import { FocusTimer } from "@/components/FocusTimer";
 import { TaskUpdates } from "@/components/TaskUpdates";
 import ThemeToggle from "@/components/ThemeToggle";
-import { useUser } from "@/contexts/UserContext";
+import { useUser, getUserTasks, saveTasks } from "@/contexts/UserContext";
 import { Heart, LogOut } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
@@ -23,23 +23,16 @@ const Index = () => {
   const { user, logout } = useUser();
 
   const [tasks, setTasks] = useState<Task[]>(() => {
-    try {
-      const stored = localStorage.getItem("tasks");
-      return stored ? JSON.parse(stored) : [];
-    } catch (e) {
-      console.error("Failed to load tasks from localStorage:", e);
-      return [];
-    }
+    if (!user) return [];
+    return getUserTasks(user.name);
   });
 
   // Persist tasks to localStorage whenever they change
   useEffect(() => {
-    try {
-      localStorage.setItem("tasks", JSON.stringify(tasks));
-    } catch (e) {
-      console.error("Failed to save tasks to localStorage:", e);
+    if (user) {
+      saveTasks(user.name, tasks);
     }
-  }, [tasks]);
+  }, [tasks, user]);
 
   const addTask = (text: string) => {
     const newTask: Task = {
