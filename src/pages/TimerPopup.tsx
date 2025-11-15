@@ -84,28 +84,28 @@ const TimerPopup = () => {
       >
         <div
           style={{
-            fontSize: "14px",
+            fontSize: "10px",
             color: "#666",
-            marginBottom: "8px",
+            marginBottom: "4px",
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
-            gap: "6px",
+            gap: "4px",
           }}
         >
-          <CurrentIcon size={16} style={{ color: currentMode.color }} />
+          <CurrentIcon size={12} style={{ color: currentMode.color }} />
           {currentMode.label}
         </div>
 
         <div
           style={{
-            fontSize: "56px",
+            fontSize: "32px",
             fontWeight: "bold",
             background: `linear-gradient(135deg, ${currentMode.color} 0%, ${currentMode.color}80 100%)`,
             backgroundClip: "text",
             WebkitBackgroundClip: "text",
             WebkitTextFillColor: "transparent",
-            marginBottom: "12px",
+            marginBottom: "6px",
             fontVariantNumeric: "tabular-nums",
           }}
         >
@@ -114,7 +114,7 @@ const TimerPopup = () => {
 
         <div
           style={{
-            fontSize: "12px",
+            fontSize: "9px",
             color: state.isRunning ? "#10b981" : "#999",
             fontWeight: "500",
           }}
@@ -126,8 +126,8 @@ const TimerPopup = () => {
       <div
         style={{
           position: "absolute",
-          bottom: "8px",
-          fontSize: "10px",
+          bottom: "4px",
+          fontSize: "7px",
           color: "#999",
           textAlign: "center",
           width: "100%",

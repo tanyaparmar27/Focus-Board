@@ -19,14 +19,14 @@ export const useFloatingTimerWindow = () => {
         return;
       }
 
-      // Open a new floating window (600x300, floating position)
-      const left = window.screenX + window.outerWidth - 650;
+      // Open a new floating window (200x140, floating position)
+      const left = window.screenX + window.outerWidth - 220;
       const top = window.screenY + 50;
 
       popupWindowRef.current = window.open(
         `${window.location.origin}/timer-popup`,
         "focus-timer-popup",
-        `width=600,height=300,left=${left},top=${top},resizable=yes,scrollbars=no,menubar=no,toolbar=no,location=no,status=no`
+        `width=200,height=140,left=${left},top=${top},resizable=yes,scrollbars=no,menubar=no,toolbar=no,location=no,status=no`
       );
 
       if (popupWindowRef.current) {
@@ -65,15 +65,44 @@ export const useFloatingTimerWindow = () => {
     return popupWindowRef.current && !popupWindowRef.current.closed;
   }, []);
 
-  // Listen for popup close
+  // Listen for popup close and keep it focused
   useEffect(() => {
     const checkInterval = setInterval(() => {
       if (popupWindowRef.current && popupWindowRef.current.closed) {
         popupWindowRef.current = null;
+      } else if (popupWindowRef.current && !popupWindowRef.current.closed) {
+        // Continuously try to keep popup focused
+        try {
+          popupWindowRef.current.focus();
+        } catch (e) {
+          // Ignore errors
+        }
       }
-    }, 1000);
+    }, 500); // Refocus every 500ms
 
-    return () => clearInterval(checkInterval);
+    // Keep popup focused on various user interactions
+    const handleInteraction = () => {
+      if (popupWindowRef.current && !popupWindowRef.current.closed) {
+        try {
+          popupWindowRef.current.focus();
+        } catch (e) {
+          // Ignore cross-origin errors
+        }
+      }
+    };
+
+    window.addEventListener("focus", handleInteraction);
+    window.addEventListener("click", handleInteraction);
+    window.addEventListener("mousedown", handleInteraction);
+    window.addEventListener("keydown", handleInteraction);
+
+    return () => {
+      clearInterval(checkInterval);
+      window.removeEventListener("focus", handleInteraction);
+      window.removeEventListener("click", handleInteraction);
+      window.removeEventListener("mousedown", handleInteraction);
+      window.removeEventListener("keydown", handleInteraction);
+    };
   }, []);
 
   return {
