@@ -74,7 +74,7 @@ const Index = () => {
   const greeting =
     currentHour < 12
       ? "Good morning"
-      : currentHour < 18
+      : currentHour >=12 && currentHour < 16
       ? "Good afternoon"
       : "Good evening";
 
