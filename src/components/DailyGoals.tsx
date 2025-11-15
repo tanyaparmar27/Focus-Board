@@ -1,9 +1,10 @@
 import { Target } from "lucide-react";
+import { useUser } from "@/contexts/UserContext";
 
-const getDayGoals = () => {
+const getDayGoals = (isMale: boolean) => {
   const day = new Date().getDay();
   
-  const goalsByDay: Record<number, string[]> = {
+  const femaleGoals: Record<number, string[]> = {
     1: [ // Monday
       "Fresh start energy! Set your week's priorities 💪",
       "Break big tasks into smaller steps 📋",
@@ -41,11 +42,52 @@ const getDayGoals = () => {
     ],
   };
 
-  return goalsByDay[day] || goalsByDay[1];
+  const maleGoals: Record<number, string[]> = {
+    1: [ // Monday
+      "New week, new wins! Crush those goals 💪",
+      "Break big tasks into battle-sized chunks ⚔️",
+      "Monday is your launchpad - let's go! 🚀",
+    ],
+    2: [ // Tuesday
+      "Keep that momentum rolling, champ! 🔥",
+      "Tackle that beast of a task head-on 💡",
+      "Hydrate up and dominate 💧",
+    ],
+    3: [ // Wednesday
+      "Halfway through the week - you're a machine! 🤖",
+      "Check the playbook and adjust strategy 📊",
+      "Celebrate the progress - you're on fire 🔥",
+    ],
+    4: [ // Thursday
+      "Almost there, warrior! Push through! 💫",
+      "Go hard now, chill this weekend 🎉",
+      "Clear the deck for smooth sailing ✅",
+    ],
+    5: [ // Friday
+      "Win the week! Finish line in sight! 🏁",
+      "Clean up the battlefield before the weekend 📝",
+      "Plan your next moves while the iron is hot 🔨",
+    ],
+    6: [ // Saturday
+      "Chill mode activated - work at your pace 😎",
+      "Only critical stuff - rest is fuel 🏋️",
+      "Balance the grind with recovery 🧘",
+    ],
+    0: [ // Sunday
+      "Game plan for the week ahead 🎮",
+      "Light strategy, heavy recovery 💪",
+      "Reset the mind before battle 🧠",
+    ],
+  };
+
+  const goals = isMale ? maleGoals : femaleGoals;
+  return goals[day] || goals[1];
 };
 
 export const DailyGoals = () => {
-  const goals = getDayGoals();
+  const { user } = useUser();
+  const isMale = user?.gender === "male";
+  const goals = getDayGoals(isMale);
   const dayName = new Date().toLocaleDateString("en-US", { weekday: "long" });
 
   return (

@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { Copy, CheckCheck, FileText } from "lucide-react";
@@ -14,14 +14,34 @@ export const TaskUpdates = () => {
     }
   });
   const [copied, setCopied] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+  const saveTimeoutRef = useRef<NodeJS.Timeout>();
 
-  // Persist updates to localStorage whenever they change
+  // Persist updates to localStorage with debounce and visual feedback
   useEffect(() => {
-    try {
-      localStorage.setItem("taskUpdates", updates);
-    } catch (e) {
-      console.error("Failed to save updates to localStorage:", e);
+    setIsSaving(true);
+    
+    // Clear previous timeout
+    if (saveTimeoutRef.current) {
+      clearTimeout(saveTimeoutRef.current);
     }
+
+    // Debounce save by 500ms
+    saveTimeoutRef.current = setTimeout(() => {
+      try {
+        localStorage.setItem("taskUpdates", updates);
+        setIsSaving(false);
+      } catch (e) {
+        console.error("Failed to save updates to localStorage:", e);
+        setIsSaving(false);
+      }
+    }, 500);
+
+    return () => {
+      if (saveTimeoutRef.current) {
+        clearTimeout(saveTimeoutRef.current);
+      }
+    };
   }, [updates]);
 
   const handleCopy = async () => {
@@ -61,6 +81,12 @@ export const TaskUpdates = () => {
         <div className="flex items-center gap-2">
           <FileText className="h-5 w-5 text-primary" />
           <h3 className="font-semibold text-lg">Task Updates</h3>
+          {isSaving && (
+            <div className="flex items-center gap-1.5 ml-2">
+              <div className="w-2 h-2 bg-primary rounded-full animate-pulse" />
+              <span className="text-xs text-muted-foreground">Saving...</span>
+            </div>
+          )}
         </div>
         <Button
           onClick={handleUseSample}

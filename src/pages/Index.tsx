@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { TaskItem } from "@/components/TaskItem";
 import { AddTaskInput } from "@/components/AddTaskInput";
 import { ProgressCard } from "@/components/ProgressCard";
@@ -6,7 +7,9 @@ import { DailyGoals } from "@/components/DailyGoals";
 import { FocusTimer } from "@/components/FocusTimer";
 import { TaskUpdates } from "@/components/TaskUpdates";
 import ThemeToggle from "@/components/ThemeToggle";
-import { Heart } from "lucide-react";
+import { useUser } from "@/contexts/UserContext";
+import { Heart, LogOut } from "lucide-react";
+import { Button } from "@/components/ui/button";
 
 interface Task {
   id: string;
@@ -16,6 +19,9 @@ interface Task {
 }
 
 const Index = () => {
+  const navigate = useNavigate();
+  const { user, logout } = useUser();
+
   const [tasks, setTasks] = useState<Task[]>(() => {
     try {
       const stored = localStorage.getItem("tasks");
@@ -79,10 +85,24 @@ const Index = () => {
       ? "Good afternoon"
       : "Good evening";
 
+  const handleLogout = () => {
+    logout();
+    navigate("/login");
+  };
+
   return (
     <div className="min-h-screen bg-gradient-soft p-4 md:p-8">
-      <div className="flex justify-end">
+      <div className="flex justify-between items-center">
         <ThemeToggle />
+        <Button
+          onClick={handleLogout}
+          variant="ghost"
+          size="sm"
+          className="text-muted-foreground hover:text-foreground"
+        >
+          <LogOut className="h-4 w-4 mr-2" />
+          Logout
+        </Button>
       </div>
       <div className="max-w-4xl mx-auto space-y-8 animate-fade-in">
         {/* Header */}
@@ -92,7 +112,7 @@ const Index = () => {
             <span className="text-sm font-medium">Productivity Space</span>
           </div>
           <h1 className="text-4xl md:text-5xl font-bold bg-gradient-primary bg-clip-text text-transparent">
-            {greeting}, Tanya!
+            {greeting}, {user?.name}!
           </h1>
           <p className="text-muted-foreground">
             Let's make today amazing ✨
